@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Dose Buddy - Insulin Dosage Calculator</title>
+    <style>
+        :root {
+            --background-color: #f4f5f7;
+            --card-background: #ffffff;
+            --text-color: #333333;
+            --primary-color: #6e7e91;
+            --input-background: #f8f9fa;
+            --input-border: #e0e4e8;
+            --result-background: #e8f0fe;
+            --highlight-color: #4a90e2;
+            --placeholder-color: #a0a0a0;
+            --disclaimer-background: #fef9e7;
+            --disclaimer-text: #333333;
+            --label-color: #000000;
+        }
+        body.dark-mode {
+            --background-color: #1a1a1a;
+            --card-background: #2c2c2c;
+            --text-color: #ffffff;
+            --primary-color: #a0a0a0;
+            --input-background: #3a3a3a;
+            --input-border: #505050;
+            --result-background: #383838;
+            --highlight-color: #5a9de2;
+            --placeholder-color: #808080;
+            --disclaimer-background: #383838;
+            --disclaimer-text: #ffffff;
+            --label-color: #ffffff;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .disclaimer {
+            max-width: 600px;
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: var(--disclaimer-background);
+            color: var(--disclaimer-text);
+            border-radius: 8px;
+            font-style: italic;
+            transition: background-color 0.3s, color 0.3s;
+            animation: fadeIn 0.5s ease-out;
+        }
+        .container {
+            background-color: var(--card-background);
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 600px;
+            transition: background-color 0.3s, box-shadow 0.3s;
+            animation: slideIn 0.5s ease-out;
+        }
+        h1 {
+            color: var(--primary-color);
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        h2 {
+            color: var(--text-color);
+            font-size: 18px;
+            font-weight: 400;
+            margin-top: 0;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        .form-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-size: 14px;
+            color: var(--label-color);
+            margin-bottom: 5px;
+            transition: color 0.3s;
+        }
+        input[type="number"] {
+            width: 90%;
+            padding: 8px;
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            font-size: 14px;
+            background-color: var(--input-background);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--highlight-color);
+            box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+        }
+        input[type="number"]::placeholder {
+            color: var(--placeholder-color);
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--highlight-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background-color 0.3s, transform 0.1s;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #3a7bc8;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        #result {
+            margin-top: 25px;
+            text-align: center;
+            background-color: var(--result-background);
+            padding: 20px;
+            border-radius: 8px;
+            transition: background-color 0.3s, opacity 0.3s, transform 0.3s;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        #result.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .highlight {
+            font-size: 32px;
+            font-weight: 600;
+            display: block;
+            margin: 10px 0;
+        }
+        .actual-value {
+            font-size: 14px;
+            color: var(--primary-color);
+            margin-top: 5px;
+        }
+        .signature {
+            margin-top: 20px;
+            font-size: 14px;
+            color: var(--text-color);
+            text-align: right;
+            width: 100%;
+            max-width: 600px;
+        }
+        .control-buttons {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+        .control-button {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 5px;
+            background-color: var(--card-background);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s, color 0.3s, transform 0.3s;
+        }
+        .control-button:hover {
+            transform: scale(1.1);
+        }
+        .control-button.active {
+            background-color: var(--highlight-color);
+            color: white;
+        }
+        #disclaimer-popup, #language-popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .popup-content, .language-popup-content {
+            background-color: var(--card-background);
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 80%;
+            text-align: center;
+        }
+        .language-popup-content h2 {
+            margin-bottom: 20px;
+        }
+        .language-popup-content button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        @media (max-width: 600px) {
+            .form-row {
+                flex-direction: column;
+                gap: 15px;
+            }
+            input[type="number"] {
+                width: 100%;
+            }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideIn {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .input-animation {
+            animation: pulse 0.3s ease-out;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .glitter {
+            animation: glitter 0.5s ease-out;
+        }
+        @keyframes glitter {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="control-buttons">
+        <button class="control-button dark-mode-toggle" onclick="toggleDarkMode()" aria-label="Toggle dark mode">🌓</button>
+        <button class="control-button language-button" onclick="changeLanguage('en')" aria-label="Switch to English">🇺🇸</button>
+        <button class="control-button language-button" onclick="changeLanguage('es')" aria-label="Cambiar a Español">🇪🇸</button>
+        <button class="control-button language-button" onclick="changeLanguage('ht')" aria-label="Chanje an Kreyòl Ayisyen">🇭🇹</button>
+    </div>
+    <div class="disclaimer">
+        <p><em id="disclaimer-text">This is an experimental web app made to help patients calculate insulin needs. It takes into account the insulin you need from food and the insulin for a correction dose if above your target blood sugar 😊 !</em></p>
+    </div>
+    <div class="container">
+        <h1 id="title">The Dose Buddy 💉 v2</h1>
+        <h2 id="subtitle">An insulin dosage calculator</h2>
+        <form id="insulinCalculator">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="carbsEaten" id="label-carbsEaten">Carbs eaten (g)</label>
+                    <input type="number" id="carbsEaten" min="0" step="1" placeholder="Enter grams">
+                </div>
+                <div class="form-group">
+                    <label for="insulinCarbRatio" id="label-insulinCarbRatio">Insulin to carb ratio</label>
+                    <input type="number" id="insulinCarbRatio" min="1" step="1" placeholder="1 unit : __ g">
+                </div>
+                <div class="form-group">
+                    <label for="currentBloodSugar" id="label-currentBloodSugar">Current BG (mg/dL)</label>
+                    <input type="number" id="currentBloodSugar" min="0" step="1" placeholder="Enter mg/dL">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="targetBloodSugar" id="label-targetBloodSugar">Target BG (mg/dL)</label>
+                    <input type="number" id="targetBloodSugar" min="0" step="1" placeholder="Enter mg/dL">
+                </div>
+                <div class="form-group">
+                    <label for="correctionFactor" id="label-correctionFactor">Correction factor</label>
+                    <input type="number" id="correctionFactor" min="1" step="1" placeholder="1 unit : __ mg/dL">
+                </div>
+            </div>
+            <button type="submit" id="calculate-button">Calculate Dose</button>
+        </form>
+
+        <div id="result"></div>
+    </div>
+    <div class="signature">Fonz, MS/MPH</div>
+
+    <div id="disclaimer-popup">
+        <div class="popup-content">
+            <h2 id="popup-title">Important Disclaimer</h2>
+            <p id="popup-text">This calculator is for educational purposes only and should not replace professional medical advice. Always consult with your healthcare provider before making changes to your insulin regimen.</p>
+            <button onclick="acceptDisclaimer()" id="popup-button">I Understand</button>
+        </div>
+    </div>
+
+    <div id="language-popup">
+        <div class="language-popup-content">
+            <h2>Select Your Language / Seleccione su idioma / Chwazi Lang Ou</h2>
+            <button onclick="selectLanguage('en')">English 🇺🇸</button>
+            <button onclick="selectLanguage('es')">Español 🇪🇸</button>
+            <button onclick="selectLanguage('ht')">Kreyòl Ayisyen 🇭🇹</button>
+        </div>
+    </div>
+
+    <script>
+        const storage = {
+            getItem: (key) => {
+                try {
+                    return localStorage.getItem(key);
+                } catch (e) {
+                    console.warn('localStorage is not available:', e);
+                    return null;
+                }
+            },
+            setItem: (key, value) => {
+                try {
+                    localStorage.setItem(key, value);
+                } catch (e) {
+                    console.warn('localStorage is not available:', e);
+                }
+            }
+        };
+
+        const translations = {
+            "en": {
+                "This is an experimental web app made to help patients calculate insulin needs. It takes into account the insulin you need from food and the insulin for a correction dose if above your target blood sugar 😊 !": "This is an experimental web app made to help patients calculate insulin needs. It takes into account the insulin you need from food and the insulin for a correction dose if above your target blood sugar 😊 !",
+                "The Dose Buddy 💉 v2": "The Dose Buddy 💉 v2",
+                "An insulin dosage calculator": "An insulin dosage calculator",
+                "Carbs eaten (g)": "Carbs eaten (g)",
+                "Insulin to carb ratio": "Insulin to carb ratio",
+                "Current BG (mg/dL)": "Current BG (mg/dL)",
+                "Target BG (mg/dL)": "Target BG (mg/dL)",
+                "Correction factor": "Correction factor",
+                "Calculate Dose": "Calculate Dose",
+                "Important Disclaimer": "Important Disclaimer",
+                "This calculator is for educational purposes only and should not replace professional medical advice. Always consult with your healthcare provider before making changes to your insulin regimen.": "This calculator is for educational purposes only and should not replace professional medical advice. Always consult with your healthcare provider before making changes to your insulin regimen.",
+                "I Understand": "I Understand",
+                "Recommended insulin dose:": "Recommended insulin dose:",
+                "Actual calculated value:": "Actual calculated value:",
+                "Carb dose:": "Carb dose:",
+                "Correction dose:": "Correction dose:",
+                "units": "units",
+                "Enter grams": "Enter grams",
+                "1 unit : __ g": "1 unit : __ g",
+                "Enter mg/dL": "Enter mg/dL",
+                "1 unit : __ mg/dL": "1 unit : __ mg/dL"
+            },
+            "es": {
+                "This is an experimental web app made to help patients calculate insulin needs. It takes into account the insulin you need from food and the insulin for a correction dose if above your target blood sugar 😊 !": "Esta es una aplicación web experimental creada para ayudar a los pacientes a calcular las necesidades de insulina. Tiene en cuenta la insulina que necesitas de los alimentos y la insulina para una dosis de corrección si estás por encima de tu nivel objetivo de azúcar en sangre 😊 !",
+                "The Dose Buddy 💉 v2": "El Compañero de Dosis 💉 v2",
+                "An insulin dosage calculator": "Una calculadora de dosis de insulina",
+                "Carbs eaten (g)": "Carbohidratos consumidos (g)",
+                "Insulin to carb ratio": "Relación insulina-carbohidratos",
+                "Current BG (mg/dL)": "Glucemia actual (mg/dL)",
+                "Target BG (mg/dL)": "Glucemia objetivo (mg/dL)",
+                "Correction factor": "Factor de corrección",
+                "Calculate Dose": "Calcular Dosis",
+                "Important Disclaimer": "Aviso Importante",
+                "This calculator is for educational purposes only and should not replace professional medical advice. Always consult with your healthcare provider before making changes to your insulin regimen.": "Esta calculadora es solo para fines educativos y no debe reemplazar el consejo médico profesional. Siempre consulte con su proveedor de atención médica antes de hacer cambios en su régimen de insulina.",
+                "I Understand": "Entiendo",
+                "Recommended insulin dose:": "Dosis de insulina recomendada:",
+                "Actual calculated value:": "Valor calculado real:",
+                "Carb dose:": "Dosis para carbohidratos:",
+                "Correction dose:": "Dosis de corrección:",
+                "units": "unidades",
+                "Enter grams": "Ingrese gramos",
+                "1 unit : __ g": "1 unidad : __ g",
+                "Enter mg/dL": "Ingrese mg/dL",
+                "1 unit : __ mg/dL": "1 unidad : __ mg/dL"
+            },
+            "ht": {
+                "This is an experimental web app made to help patients calculate insulin needs. It takes into account the insulin you need from food and the insulin for a correction dose if above your target blood sugar 😊 !": "Sa a se yon aplikasyon entènèt eksperimantal ki fèt pou ede pasyan yo kalkile bezwen ensilin. Li konsidere ensilin ou bezwen pou manje ak ensilin pou yon dòz koreksyon si ou depase sik nan san ou vize a 😊 !",
+                "The Dose Buddy 💉 v2": "Konpayon Dòz la 💉 v2",
+                "An insulin dosage calculator": "Yon kalkilatè dòz ensilin",
+                "Carbs eaten (g)": "Kabohidrat ou manje (g)",
+                "Insulin to carb ratio": "Pwoposyon ensilin pou kabohidrat",
+                "Current BG (mg/dL)": "Sik nan san kounye a (mg/dL)",
+                "Target BG (mg/dL)": "Sik nan san ou vize (mg/dL)",
+                "Correction factor": "Faktè koreksyon",
+                "Calculate Dose": "Kalkile Dòz la",
+                "Important Disclaimer": "Avètisman Enpòtan",
+                "This calculator is for educational purposes only and should not replace professional medical advice. Always consult with your healthcare provider before making changes to your insulin regimen.": "Kalkilatè sa a se pou rezon edikasyonèl sèlman epi li pa ta dwe ranplase konsèy medikal pwofesyonèl. Toujou konsilte ak founisè swen sante ou anvan ou fè chanjman nan rejim ensilin ou.",
+                "I Understand": "Mwen Konprann",
+                "Recommended insulin dose:": "Dòz ensilin yo rekòmande:",
+                "Actual calculated value:": "Valè kalkile aktyèl:",
+                "Carb dose:": "Dòz pou kabohidrat:",
+                "Correction dose:": "Dòz koreksyon:",
+                "units": "inite",
+                "Enter grams": "Antre gram",
+                "1 unit : __ g": "1 inite : __ g",
+                "Enter mg/dL": "Antre mg/dL",
+                "1 unit : __ mg/dL": "1 inite : __ mg/dL"
+            }
+        };
+
+        let currentLanguage = 'en';
+
+        function changeLanguage(lang) {
+            currentLanguage = lang;
+            updateLanguage();
+            updateActiveLanguageButton();
+            storage.setItem('language', lang);
+        }
+
+        function updateLanguage() {
+            document.querySelectorAll('[id]').forEach(element => {
+                const translationKey = element.innerText;
+                if (translations[currentLanguage][translationKey]) {
+                    element.innerText = translations[currentLanguage][translationKey];
+                }
+            });
+
+            document.querySelectorAll('input[type="number"]').forEach(input => {
+                const placeholder = input.getAttribute('placeholder');
+                if (translations[currentLanguage][placeholder]) {
+                    input.setAttribute('placeholder', translations[currentLanguage][placeholder]);
+                }
+            });
+        }
+
+        function updateActiveLanguageButton() {
+            document.querySelectorAll('.language-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            document.querySelector(`.language-button[onclick="changeLanguage('${currentLanguage}')"]`).classList.add('active');
+        }
+
+        function selectLanguage(lang) {
+            changeLanguage(lang);
+            document.getElementById('language-popup').style.display = 'none';
+        }
+
+        function acceptDisclaimer() {
+            storage.setItem('disclaimerAccepted', 'true');
+            const popup = document.getElementById('disclaimer-popup');
+            popup.classList.remove('show');
+            setTimeout(() => popup.style.display = 'none', 300);
+        }
+
+        window.onload = function() {
+            if (storage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark-mode');
+            }
+            
+            ['carbsEaten', 'insulinCarbRatio', 'currentBloodSugar', 'targetBloodSugar', 'correctionFactor'].forEach(id => {
+                const savedValue = storage.getItem(id);
+                if (savedValue) {
+                    document.getElementById(id).value = savedValue;
+                }
+            });
+
+            document.querySelectorAll('input').forEach(input => {
+                input.addEventListener('input', function() {
+                    this.classList.add('input-animation');
+                    setTimeout(() => this.classList.remove('input-animation'), 300);
+                });
+            });
+
+            const savedLanguage = storage.getItem('language');
+            if (savedLanguage) {
+                currentLanguage = savedLanguage;
+                changeLanguage(currentLanguage);
+            } else {
+                document.getElementById('language-popup').style.display = 'flex';
+            }
+
+            if (!storage.getItem('disclaimerAccepted')) {
+                const popup = document.getElementById('disclaimer-popup');
+                popup.style.display = 'flex';
+                setTimeout(() => popup.classList.add('show'), 10);
+            }
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            storage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+            
+            document.body.style.transition = 'background-color 0.5s, color 0.5s';
+            setTimeout(() => {
+                document.body.style.transition = '';
+            }, 500);
+        }
+
+        document.getElementById('insulinCalculator').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const inputs = ['carbsEaten', 'insulinCarbRatio', 'currentBloodSugar', 'targetBloodSugar', 'correctionFactor'];
+            const values = inputs.reduce((acc, id) => {
+                acc[id] = parseFloat(document.getElementById(id).value) || 0;
+                storage.setItem(id, document.getElementById(id).value);
+                return acc;
+            }, {});
+
+            const insulinForCarbs = values.carbsEaten / values.insulinCarbRatio;
+            const correctionDose = Math.max(0, (values.currentBloodSugar - values.targetBloodSugar) / values.correctionFactor);
+
+            const totalInsulin = insulinForCarbs + correctionDose;
+            const roundedInsulin = Math.round(totalInsulin * 10) / 10;
+
+            const color = roundedInsulin <= 5 ? 'green' : roundedInsulin <= 10 ? 'orange' : 'red';
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `
+                <p>${translations[currentLanguage]["Recommended insulin dose:"]}</p>
+                <span class="highlight glitter" style="color: ${color};">${roundedInsulin} ${translations[currentLanguage]["units"]}</span>
+                <p class="actual-value">${translations[currentLanguage]["Actual calculated value:"]} ${totalInsulin.toFixed(2)} ${translations[currentLanguage]["units"]}</p>
+                <p>${translations[currentLanguage]["Carb dose:"]} ${insulinForCarbs.toFixed(2)} ${translations[currentLanguage]["units"]}</p>
+                <p>${translations[currentLanguage]["Correction dose:"]} ${correctionDose.toFixed(2)} ${translations[currentLanguage]["units"]}</p>
+            `;
+
+            resultDiv.classList.remove('show');
+            void resultDiv.offsetWidth;
+            resultDiv.classList.add('show');
+
+            setTimeout(() => {
+                resultDiv.scrollIntoView({behavior: 'smooth', block: 'start'});
+            }, 100);
+
+            const highlightSpan = resultDiv.querySelector('.highlight');
+            highlightSpan.addEventListener('animationend', () => {
+                highlightSpan.classList.remove('glitter');
+            });
+            void highlightSpan.offsetWidth;
+            highlightSpan.classList.add('glitter');
+
+            createConfetti();
+        });
+
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('mouseover', function() {
+                this.style.transform = 'scale(1.02)';
+            });
+            input.addEventListener('mouseout', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+
+        document.querySelector('button[type="submit"]').addEventListener('mousedown', function() {
+            this.style.transform = 'scale(0.98)';
+        });
+        document.querySelector('button[type="submit"]').addEventListener('mouseup', function() {
+            this.style.transform = 'scale(1)';
+        });
+
+        function createConfetti() {
+            const confettiCount = 100;
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+            
+            for (let i = 0; i < confettiCount; i++) {
+                const confetti = document.createElement('div');
+                confetti.style.position = 'fixed';
+                confetti.style.width = '10px';
+                confetti.style.height = '10px';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.top = '-10px';
+                confetti.style.borderRadius = '50%';
+                confetti.style.zIndex = '1000';
+                document.body.appendChild(confetti);
+
+                const animation = confetti.animate([
+                    { transform: 'translate3d(0, 0, 0)', opacity: 1 },
+                    { transform: `translate3d(${Math.random() * 100 - 50}px, 100vh, 0)`, opacity: 0 }
+                ], {
+                    duration: Math.random() * 3000 + 2000,
+                    easing: 'cubic-bezier(0, .9, .57, 1)',
+                    delay: Math.random() * 1000
+                });
+
+                animation.onfinish = () => confetti.remove();
+            }
+        }
+
+        // PWA-related code
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
