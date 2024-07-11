@@ -2,7 +2,7 @@
     "name": "The Dose Buddy",
     "short_name": "Dose Buddy",
     "description": "An insulin dosage calculator",
-    "start_url": "index.html",
+    "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#6e7e91",
